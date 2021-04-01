@@ -5,6 +5,8 @@ var app = express();
 // var { setRgb, hexToRgb, SetColors, from } = require("./util");
 var refreshDeviceLights = require("./lib/refreshDeviceLights");
 
+// Read persistent light data, set lights
+
 app.listen(80, ()=>{
 	console.log("Server started at " + new Date().toTimeString());
 });
@@ -74,13 +76,30 @@ app.use("/shorthand", shorthand);
 
 
 app.get("/layers", (req, res) => {
-	res.send(devices[0].layers);
+	res.send(devices[1].layers);
 });
 
-app.get("/:loc/:color([a-fA-F0-9]+)", (req, res, next) => {
-	var layer = parseInt(req.query.layer);
+app.get("/clearDevice/:device", (req, res) => {
+
+    devices[parseInt(req.params.device)].layers = [];
+	refreshDeviceLights(req.params.device);
+    res.send({message:`Cleared device ${req.params.device}`});
+});
+
+app.get("/clearAll", (req, res) => {
+	devices.forEach((device, index) => {
+		devices[index].layers = [];
+		refreshDeviceLights(index);
+	});
+
+	res.send({message:"All devices cleared"});
+});
+
+app.get("/:loc/:color(([a-fA-F0-9]{6}|clear))", (req, res, next) => {
+	var layer = req.query.layer ?? (parseInt(req.query.layer) || 0);
 	var color = req.params.color;
 	var spots = []; 
+	var device = req.query.device ?? (parseInt(req.query.device) || 0);
 	var locations = req.params.loc.split("-");
 	if(locations.length==2) {
 		let start = parseInt(locations[0]);
@@ -91,19 +110,23 @@ app.get("/:loc/:color([a-fA-F0-9]+)", (req, res, next) => {
 			start++;
 		}
 
-		// from colors[0] to colors[1] with color.
 	} else {
+
 		spots[req.params.loc] = color;
 	}
 	
-
 	spots.forEach((spot, index) => {
-		devices[0].layers[layer][index] = req.params.color;
+		
+		devices[device].layers[layer] ? null : devices[device].layers[layer] = [];
+		devices[device].layers[layer][index] = spot == "clear" ? undefined : color;
 	});
 
-	refreshDeviceLights(0);
 
-	res.json({success: true})
+
+
+	refreshDeviceLights(device);
+
+	res.json({success: true, deviceLayers: devices[device].layers});
 });
 
 
