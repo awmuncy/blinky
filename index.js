@@ -78,6 +78,7 @@ app.get("/layers", (req, res) => {
 });
 
 app.get("/:loc/:color([a-fA-F0-9]+)", (req, res, next) => {
+	var layer = parseInt(req.query.layer);
 	var color = req.params.color;
 	var spots = []; 
 	var locations = req.params.loc.split("-");
@@ -94,15 +95,12 @@ app.get("/:loc/:color([a-fA-F0-9]+)", (req, res, next) => {
 	} else {
 		spots[req.params.loc] = color;
 	}
+	
 
 	spots.forEach((spot, index) => {
-		devices[0].layers[0][index] = req.params.color;
+		devices[0].layers[layer][index] = req.params.color;
 	});
 
-	// devices[req.query.device || 0].layers[req.query.layer || 0] = 
-
-	//devices[0].layers[1] ? null : devices[0].layers[1] = [];
-	// devices[0].layers[req.query.layer || 0][req.params.loc] = req.params.color;
 	refreshDeviceLights(0);
 
 	res.json({success: true})
